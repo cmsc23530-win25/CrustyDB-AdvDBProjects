@@ -4,11 +4,11 @@ mod test {
     use crate::lockmanager::*;
     use common::prelude::*;
     use common::testutil::init;
+    use rand::Rng;
     use std::sync::atomic::AtomicUsize;
     use std::sync::{Arc, Barrier};
     use std::thread::{self, sleep};
     use std::time::Duration;
-    use rand::Rng;
     const TIMEOUT_MS: u64 = 500;
 
     struct Wrapper2 {
@@ -26,7 +26,7 @@ mod test {
         l: Vec<Arc<LockManager>>,
         vid: Vec<ValueId>,
         t: Vec<TransactionId>,
-        b: Vec<Arc<Barrier>>
+        b: Vec<Arc<Barrier>>,
     }
 
     impl Wrapper2 {
@@ -60,7 +60,7 @@ mod test {
         fn new(txns: usize, threads: usize, c: ContainerId, p: PageId) -> Self {
             let mut l = Vec::new();
             let mut vid = Vec::new();
-        
+
             for i in 0..c {
                 for j in 0..p {
                     vid.push(ValueId::new_page(i, j));
@@ -77,12 +77,7 @@ mod test {
                 l.push(Arc::clone(&lm));
                 b.push(Arc::clone(&barrier));
             }
-            Self {
-                l,
-                vid,
-                t,
-                b
-            }
+            Self { l, vid, t, b }
         }
     }
 
@@ -112,13 +107,13 @@ mod test {
         assert_eq!(lm.locks_held(txn).len(), 2);
 
         // Release and acquire locks.
-        assert_eq!(lm.release_lock(txn, vid2),Ok(()));
+        assert_eq!(lm.release_lock(txn, vid2), Ok(()));
         assert!(lm.acquire_lock(txn, vid3, Permissions::ReadWrite).is_ok());
         assert!(lm.acquire_lock(txn, vid4, Permissions::ReadWrite).is_ok());
         assert_eq!(lm.locks_held(txn).len(), 3);
 
         // Release all locks.
-        assert_eq!(lm.release_all_locks(txn),Ok(()));
+        assert_eq!(lm.release_all_locks(txn), Ok(()));
         assert_eq!(lm.locks_held(txn).len(), 0);
 
         // Reacquire locks.
@@ -151,9 +146,7 @@ mod test {
         let txn = TransactionId::new();
         assert!(lm.release_lock(txn, vid).is_err());
         assert!(lm.release_all_locks(txn).is_err());
-
     }
-    
 
     #[test]
     fn test_simple_release_shared_lock() {
@@ -222,7 +215,6 @@ mod test {
         lm.release_lock(txn, vid).unwrap();
     }
 
-
     #[test]
     #[should_panic]
     fn test_simple_release_locks_missing_txn() {
@@ -273,14 +265,16 @@ mod test {
         assert!(lm.acquire_lock(txn2, vid, Permissions::ReadOnly).is_ok());
 
         // Try to upgrade without releasing read.
-        assert!(lm.upgrade_lock(txn1, vid).is_err(), "Txn1 should not be able to upgrade");
+        assert!(
+            lm.upgrade_lock(txn1, vid).is_err(),
+            "Txn1 should not be able to upgrade"
+        );
 
         // txn2 releases to allow txn1 to write.
         lm.release_lock(txn2, vid).unwrap();
         // assert_eq!(lm.locks_held(txn2).len(), 0);
         // assert!(lm.acquire_lock(txn1, vid, Permissions::ReadWrite).is_ok());
     }
-
 
     #[test]
     fn test_conc_release_all_queued() -> Result<(), CrustyError> {
@@ -305,18 +299,16 @@ mod test {
             let t1locks = l1.locks_held(txn1);
             assert!(t1locks.contains(&vid1));
             assert!(t1locks.contains(&vid3));
-
         });
         let t2 = thread::spawn(move || {
             assert!(l2.acquire_lock(txn2, vid2, Permissions::ReadWrite).is_ok());
             assert!(l2.acquire_lock(txn2, vid3, Permissions::ReadWrite).is_ok());
             b2.wait();
             b2.wait();
-            thread::sleep(Duration::from_millis(TIMEOUT_MS/6));
+            thread::sleep(Duration::from_millis(TIMEOUT_MS / 6));
             //Mock abort
             assert!(l2.release_all_locks(txn2).is_ok());
             assert!(l2.locks_held(txn2).is_empty());
-
         });
         let t3 = thread::spawn(move || {
             b3.wait();
@@ -348,7 +340,7 @@ mod test {
             assert!(l1.acquire_lock(txn1, vid2, Permissions::ReadWrite).is_ok());
             b1.wait();
             b1.wait();
-            thread::sleep(Duration::from_millis(TIMEOUT_MS/10));
+            thread::sleep(Duration::from_millis(TIMEOUT_MS / 10));
             assert!(l1.release_all_locks(txn1).is_ok());
         });
         let t2 = thread::spawn(move || {
@@ -356,7 +348,6 @@ mod test {
             assert!(l2.acquire_lock(txn2, vid1, Permissions::ReadOnly).is_ok());
             b2.wait();
             assert!(l2.acquire_lock(txn2, vid2, Permissions::ReadOnly).is_ok());
-
         });
         let t3 = thread::spawn(move || {
             b3.wait();
@@ -377,12 +368,18 @@ mod test {
 
         let t1 = thread::spawn(move || {
             {
-                assert!(w.l1.acquire_lock(w.txn1, w.vid1, Permissions::ReadWrite).is_ok());
-                assert!(w.l1.acquire_lock(w.txn1, w.vid2, Permissions::ReadOnly).is_ok());
+                assert!(w
+                    .l1
+                    .acquire_lock(w.txn1, w.vid1, Permissions::ReadWrite)
+                    .is_ok());
+                assert!(w
+                    .l1
+                    .acquire_lock(w.txn1, w.vid2, Permissions::ReadOnly)
+                    .is_ok());
                 w.b1.wait();
             }
             {
-                sleep(Duration::from_millis(TIMEOUT_MS/4));
+                sleep(Duration::from_millis(TIMEOUT_MS / 4));
                 w.b1.wait();
                 if w.l1.release_all_locks(w.txn1).is_err() {
                     unreachable!("Should not fail");
@@ -392,14 +389,23 @@ mod test {
         });
         let t2 = thread::spawn(move || {
             {
-                assert!(w.l2.acquire_lock(w.txn2, w.vid2, Permissions::ReadOnly).is_ok());
+                assert!(w
+                    .l2
+                    .acquire_lock(w.txn2, w.vid2, Permissions::ReadOnly)
+                    .is_ok());
                 w.b2.wait();
-                assert!(!w.l2.acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite).is_ok());
+                assert!(!w
+                    .l2
+                    .acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite)
+                    .is_ok());
             }
             {
                 w.b2.wait();
                 w.b2.wait();
-                assert!(w.l2.acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite).is_ok());
+                assert!(w
+                    .l2
+                    .acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite)
+                    .is_ok());
             }
         });
         t1.join().unwrap();
@@ -415,9 +421,18 @@ mod test {
 
         let t1 = thread::spawn(move || {
             {
-                assert!(w.l1.acquire_lock(w.txn1, w.vid1, Permissions::ReadWrite).is_ok());
-                assert!(w.l1.acquire_lock(w.txn1, w.vid1, Permissions::ReadWrite).is_ok());
-                assert!(w.l1.acquire_lock(w.txn1, w.vid2, Permissions::ReadOnly).is_ok());
+                assert!(w
+                    .l1
+                    .acquire_lock(w.txn1, w.vid1, Permissions::ReadWrite)
+                    .is_ok());
+                assert!(w
+                    .l1
+                    .acquire_lock(w.txn1, w.vid1, Permissions::ReadWrite)
+                    .is_ok());
+                assert!(w
+                    .l1
+                    .acquire_lock(w.txn1, w.vid2, Permissions::ReadOnly)
+                    .is_ok());
                 w.b1.wait();
             }
             {
@@ -431,13 +446,22 @@ mod test {
         let t2 = thread::spawn(move || {
             {
                 w.b2.wait();
-                assert!(!w.l2.acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite).is_ok());
-                assert!(w.l2.acquire_lock(w.txn2, w.vid2, Permissions::ReadOnly).is_ok());
+                assert!(!w
+                    .l2
+                    .acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite)
+                    .is_ok());
+                assert!(w
+                    .l2
+                    .acquire_lock(w.txn2, w.vid2, Permissions::ReadOnly)
+                    .is_ok());
             }
             {
                 w.b2.wait();
                 w.b2.wait();
-                assert!(w.l2.acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite).is_ok());
+                assert!(w
+                    .l2
+                    .acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite)
+                    .is_ok());
             }
         });
         t1.join().unwrap();
@@ -451,7 +475,10 @@ mod test {
         let w = Wrapper2::new();
         let t1 = thread::spawn(move || {
             {
-                assert!(w.l1.acquire_lock(w.txn1, w.vid1, Permissions::ReadWrite).is_ok());
+                assert!(w
+                    .l1
+                    .acquire_lock(w.txn1, w.vid1, Permissions::ReadWrite)
+                    .is_ok());
                 w.b1.wait();
             }
             {
@@ -463,12 +490,13 @@ mod test {
             }
         });
         let t2 = thread::spawn(move || {
-            {
-                w.b2.wait();
-                assert!(w.l2.acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite).is_err(),
-                        "Should fail to acquire lock due to timeout");
-                w.b2.wait();
-            }
+            w.b2.wait();
+            assert!(
+                w.l2.acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite)
+                    .is_err(),
+                "Should fail to acquire lock due to timeout"
+            );
+            w.b2.wait();
         });
         t1.join().unwrap();
         t2.join().unwrap();
@@ -481,21 +509,31 @@ mod test {
         let w = Wrapper2::new();
         let t1 = thread::spawn(move || {
             {
-                assert!(w.l1.acquire_lock(w.txn1, w.vid1, Permissions::ReadWrite).is_ok());
+                assert!(w
+                    .l1
+                    .acquire_lock(w.txn1, w.vid1, Permissions::ReadWrite)
+                    .is_ok());
                 w.b1.wait();
             }
             {
-                assert!(w.l1.acquire_lock(w.txn1, w.vid2, Permissions::ReadWrite).is_err(),
-                    "Should fail to acquire lock due to deadlock");
+                assert!(
+                    w.l1.acquire_lock(w.txn1, w.vid2, Permissions::ReadWrite)
+                        .is_err(),
+                    "Should fail to acquire lock due to deadlock"
+                );
             }
         });
         let t2 = thread::spawn(move || {
-            {
-                assert!(w.l2.acquire_lock(w.txn2, w.vid2, Permissions::ReadWrite).is_ok());
-                w.b2.wait();
-                assert!(w.l2.acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite).is_err(),
-                        "Should fail to acquire lock due to deadlock");
-            }
+            assert!(w
+                .l2
+                .acquire_lock(w.txn2, w.vid2, Permissions::ReadWrite)
+                .is_ok());
+            w.b2.wait();
+            assert!(
+                w.l2.acquire_lock(w.txn2, w.vid1, Permissions::ReadWrite)
+                    .is_err(),
+                "Should fail to acquire lock due to deadlock"
+            );
         });
         t1.join().unwrap();
         t2.join().unwrap();
@@ -505,12 +543,12 @@ mod test {
     #[test]
     fn test_lm_no_starvation() -> Result<(), CrustyError> {
         init();
-        let mut w = WrapperN::new(3,3,1,1);
+        let mut w = WrapperN::new(3, 3, 1, 1);
         let vid1 = w.vid[0];
         let (txn1, txn2, txn3) = (w.t[0], w.t[1], w.t[2]);
         let (l1, l2, l3) = (w.l.pop().unwrap(), w.l.pop().unwrap(), w.l.pop().unwrap());
         let (b1, b2, b3) = (w.b.pop().unwrap(), w.b.pop().unwrap(), w.b.pop().unwrap());
-        
+
         let t1 = thread::spawn(move || {
             assert!(l1.acquire_lock(txn1, vid1, Permissions::ReadOnly).is_ok());
             b1.wait();
@@ -523,7 +561,6 @@ mod test {
             b3.wait();
             thread::sleep(Duration::from_millis(50));
             assert!(l3.acquire_lock(txn3, vid1, Permissions::ReadOnly).is_err());
-
         });
         t1.join().unwrap();
         t2.join().unwrap();
@@ -538,11 +575,17 @@ mod test {
         let w = Wrapper2::new();
 
         let t1 = thread::spawn(move || {
-            assert!(w.l1.acquire_lock(w.txn1, w.vid1, Permissions::ReadOnly).is_ok());
+            assert!(w
+                .l1
+                .acquire_lock(w.txn1, w.vid1, Permissions::ReadOnly)
+                .is_ok());
             w.b1.wait();
         });
         let t2 = thread::spawn(move || {
-            assert!(w.l2.acquire_lock(w.txn2, w.vid1, Permissions::ReadOnly).is_ok());
+            assert!(w
+                .l2
+                .acquire_lock(w.txn2, w.vid1, Permissions::ReadOnly)
+                .is_ok());
             w.b2.wait();
             // Upgrade should fail as txn1 has the shared lock
             assert!(w.l2.upgrade_lock(w.txn2, w.vid1).is_err());
@@ -552,21 +595,20 @@ mod test {
         Ok(())
     }
 
-
     #[test]
     fn test_conc_downgrade_shared() -> Result<(), CrustyError> {
         init();
         // XL, SL, SL Downgrade should give shared locks to others
-        let mut w = WrapperN::new(3,3,1,1);
+        let mut w = WrapperN::new(3, 3, 1, 1);
         let vid1 = w.vid[0];
         let (txn1, txn2, txn3) = (w.t[0], w.t[1], w.t[2]);
         let (l1, l2, l3) = (w.l.pop().unwrap(), w.l.pop().unwrap(), w.l.pop().unwrap());
         let (b1, b2, b3) = (w.b.pop().unwrap(), w.b.pop().unwrap(), w.b.pop().unwrap());
-        
+
         let t1 = thread::spawn(move || {
             assert!(l1.acquire_lock(txn1, vid1, Permissions::ReadWrite).is_ok());
             b1.wait();
-            thread::sleep(Duration::from_millis(TIMEOUT_MS/10));
+            thread::sleep(Duration::from_millis(TIMEOUT_MS / 10));
             assert!(l1.downgrade_lock(txn1, vid1).is_ok());
             b1.wait();
             assert!(l1.release_lock(txn1, vid1).is_ok());
@@ -582,7 +624,6 @@ mod test {
             assert!(l3.acquire_lock(txn3, vid1, Permissions::ReadOnly).is_ok());
             assert!(l3.locks_held(txn3).contains(&vid1));
             b3.wait();
-
         });
         t1.join().unwrap();
         t2.join().unwrap();
@@ -605,16 +646,16 @@ mod test {
         let max_txn_len = 10;
 
         let fail_rate = 0.005;
-        let avg_ops = (max_txn_len+min_txn_len)/2 * txns;
+        let avg_ops = (max_txn_len + min_txn_len) / 2 * txns;
         let max_fails = fail_rate * avg_ops as f64;
-        
+
         let mut w = WrapperN::new(txns, thread_cnt, c_count, p_count);
         let mut threads = Vec::new();
         for _i in 0..thread_cnt {
             let lm = w.l.pop().unwrap();
             let tfails = Arc::clone(&fails);
             let t = thread::spawn(move || {
-                let mut rng = rand::thread_rng();    
+                let mut rng = rand::thread_rng();
                 for _ in 0..txn_per_thread {
                     let txn = TransactionId::new();
                     let len = rng.gen_range(min_txn_len..=max_txn_len);
@@ -624,7 +665,8 @@ mod test {
                         } else {
                             Permissions::ReadWrite
                         };
-                        let vid = ValueId::new_page(rng.gen_range(0..c_count), rng.gen_range(0..p_count));
+                        let vid =
+                            ValueId::new_page(rng.gen_range(0..c_count), rng.gen_range(0..p_count));
                         if lm.acquire_lock(txn, vid, perm).is_err() {
                             tfails.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                         }
@@ -638,8 +680,10 @@ mod test {
             t.join().unwrap();
         }
         let failures = fails.load(std::sync::atomic::Ordering::Relaxed);
-        assert!(failures <= (max_fails as usize), "Too many failures. Max {max_fails} had {failures}");
+        assert!(
+            failures <= (max_fails as usize),
+            "Too many failures. Max {max_fails} had {failures}"
+        );
         Ok(())
     }
-
 }
