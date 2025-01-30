@@ -27,6 +27,12 @@ pub enum CrustyError {
     InvalidMutationError(String),
     /// Transaction Rollback
     TransactionRollback(TransactionId),
+    /// Storage Error
+    StorageError,
+    /// Missing / invalid container
+    ContainerDoesNotExist,
+    /// Invalid Operation
+    InvalidOperation,
 }
 
 impl fmt::Display for CrustyError {
@@ -44,6 +50,9 @@ impl fmt::Display for CrustyError {
                 CrustyError::InvalidMutationError(s) => format!("InvalidMutationError {}", s),
                 CrustyError::TransactionRollback(tid) =>
                     format!("Transaction Rolledback {:?}", tid),
+                CrustyError::StorageError => format!("Storage Error"),
+                CrustyError::ContainerDoesNotExist => format!("Container Does Not Exist"),
+                CrustyError::InvalidOperation => format!("Invalid Operation"),
             }
         )
     }
