@@ -24,11 +24,13 @@ pub struct FixedPage {
     /// A boolean array to track which slots are free. This is larger than the
     /// slot_capacity as we need to statically allocate the array.
     pub free: [bool; PAGE_SLOT_LIMIT],
-    /// If needed for a structure to identify the next page.
+    /// If needed, for a structure to identify the next page.
     pub page_pointer: PagePointer,
-    /// If needed a flag indicating if an index page is a leaf or not
+    /// If needed, an overflow page pointer
+    pub overflow_pointer: PagePointer,
+    /// If needed, a flag indicating if an index page is a leaf or not
     pub is_leaf: bool,
-    /// A usize to use if you need for any reason
+    /// If needed, a usize to use for any reason
     pub extra: usize,
 }
 
@@ -43,6 +45,7 @@ impl FixedPage {
             pair_size: 0,
             free: [false; PAGE_SLOT_LIMIT],
             page_pointer: None,
+            overflow_pointer: None,
             is_leaf: false,
             extra: 0,
         }
@@ -57,10 +60,10 @@ impl FixedPage {
         self.key_size = key_size;
         self.value_size = value_size;
         self.pair_size = key_size + value_size;
-        self.slot_capacity = min(PAGE_SLOT_LIMIT, (PAGE_SIZE) / (self.pair_size) - 1) as SlotId;
+        self.slot_capacity = min(PAGE_SLOT_LIMIT, (PAGE_SIZE) / (self.pair_size) ) as SlotId;
         assert!(
-            self.slot_capacity > 10,
-            "Page must hold at least 10 elements"
+            self.slot_capacity > 6,
+            "Page must hold at least 6 elements"
         );
         // Set it so invalid slots of false
         for i in 0..self.slot_capacity {
@@ -158,12 +161,171 @@ impl FixedPage {
         }
         res
     }
+
+    /// Shift all records to the right starting from the given slot if possible.
+    /// This shifts the records one place to the right up until the first empty slot encountered
+    /// If there are empty slots to the right 
+    /// Returns true if the shift was successful, false otherwise.
+    /// If the slot is empty or out of bounds, an error is returned.
+    pub fn shift_all_right(&mut self, slot: SlotId) -> Result<bool, CrustyError> {
+        if slot >= self.slot_capacity {
+            return Err(CrustyError::CrustyError("Slot out of bounds".to_string()));
+        }
+        let slot = slot as usize;
+        if self.free[slot] {
+            return Err(CrustyError::CrustyError("Slot is empty".to_string()));
+        }
+        // see if there is a free slot to the right
+        for i in (slot + 1)..self.slot_capacity as usize {
+            if self.free[i] {
+                let mut buf = vec![];
+                let data_shift_start = slot * self.pair_size;
+                let data_shift_end = i * self.pair_size;
+                buf.extend_from_slice(&self.data[data_shift_start..data_shift_end]);
+                let os = self.pair_size;
+                self.data[data_shift_start+os.. data_shift_end+os].copy_from_slice(&buf);
+                self.free[slot] = true;
+                self.free[i] = false;
+                return Ok(true);
+            }
+        }
+        return Ok(false)
+    }
+
+    /// How many slots are filled
+    pub fn get_filled_slot_count(&self) -> usize {
+        let mut count = 0;
+        for i in 0..self.slot_capacity {
+            if !self.free[i as usize] {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    /// How many slots are free
+    pub fn get_free_slot_count(&self) -> usize {
+        self.slot_capacity as usize - self.get_filled_slot_count()
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::prelude::{KEY_SIZE, VALUE_SIZE};
+
+    #[test] 
+    fn test_shift() {
+        const BIG_SIZE: usize = 256;
+        // should hold 8 KV pairs
+        let mut p = FixedPage::new(1, BIG_SIZE, BIG_SIZE);
+        assert_eq!(p.slot_capacity, 8);
+        assert_eq!(p.get_filled_slot_count(), 0);
+        assert_eq!(p.get_free_slot_count(), 8);
+        let k1 = [1; BIG_SIZE];
+        let k2 = [3; BIG_SIZE];
+        let k3 = [4; BIG_SIZE];
+        p.write(0, false, &k1, &k1).unwrap();
+        p.write(1, false, &k2, &k2).unwrap();
+        p.write(2, false, &k3, &k3).unwrap();
+        assert_eq!(p.get_filled_slot_count(), 3);
+        assert_eq!(p.get_free_slot_count(), 5);
+
+        let (k, v) = p.get_kv(0).unwrap();
+        assert_eq!(k, k1);
+        assert_eq!(v, k1);
+
+        let (k, v) = p.get_kv(1).unwrap();
+        assert_eq!(k, k2);
+        assert_eq!(v, k2);
+        
+        let (k, v) = p.get_kv(2).unwrap();
+        assert_eq!(k, k3);
+        assert_eq!(v, k3);
+
+        // Shift all right from 1
+        assert!(p.get_kv(3).is_none());
+        assert_eq!(p.shift_all_right(1).unwrap(), true);
+
+        // Slot counts should be the same
+        assert_eq!(p.get_filled_slot_count(), 3);
+        assert_eq!(p.get_free_slot_count(), 5);
+
+        // Slot 0 should be in the same place
+        let (k, v) = p.get_kv(0).unwrap();
+        assert_eq!(k, k1);
+        assert_eq!(v, k1);
+
+        // 1 should be empty
+        assert!(p.get_kv(1).is_none());
+
+        // Slot 1 should be in slot 2
+        let (k, v) = p.get_kv(2).unwrap();
+        assert_eq!(k, k2);
+        assert_eq!(v, k2);
+        
+        let (k, v) = p.get_kv(3).unwrap();
+        assert_eq!(k, k3);
+        assert_eq!(v, k3);
+
+        assert!(p.get_kv(4).is_none());
+
+        // move 3 to 4, making 3 empty
+        assert!(p.move_if_empty(3,4).is_ok());
+        assert!(p.get_kv(3).is_none());
+
+        let (k, v) = p.get_kv(4).unwrap();
+        assert_eq!(k, k3);
+        assert_eq!(v, k3);
+
+        // Shift right from 0. should only move 0 to 1 since it is empty
+        assert_eq!(p.shift_all_right(0).unwrap(), true);
+        assert!(p.get_kv(0).is_none());
+        assert!(p.get_kv(3).is_none());
+
+        let (k, v) = p.get_kv(4).unwrap();
+        assert_eq!(k, k3);
+        assert_eq!(v, k3);
+
+        let (k, v) = p.get_kv(2).unwrap();
+        assert_eq!(k, k2);
+        assert_eq!(v, k2);
+
+        let (k, v) = p.get_kv(1).unwrap();
+        assert_eq!(k, k1);
+        assert_eq!(v, k1);
+
+        // fill in the empty slots
+        let k4 = [5; BIG_SIZE];
+        let k6 = [6; BIG_SIZE];
+        assert!(p.write(0, false, &k4, &k4).is_ok());
+        assert!(p.write(3, false, &k4, &k4).is_ok());
+        assert!(p.write(4, false, &k4, &k4).is_err()); // already filled
+        assert!(p.write(5, false, &k4, &k4).is_ok());
+        assert!(p.write(6, false, &k4, &k4).is_ok());
+        assert!(p.write(7, false, &k6, &k6).is_ok());
+        assert!(p.write(8, false, &k4, &k4).is_err()); // out of bounds
+
+        assert_eq!(p.get_filled_slot_count(), 8);
+        assert_eq!(p.get_free_slot_count(), 0);
+
+        assert!(p.shift_all_right(0).unwrap() == false);
+        assert!(p.shift_all_right(3).unwrap() == false);
+        assert!(p.shift_all_right(7).unwrap() == false);
+
+        let (k, v) = p.get_kv(7).unwrap();
+        assert_eq!(k, k6);
+        assert_eq!(v, k6);
+        p.delete(7);
+
+        assert!(p.shift_all_right(3).unwrap());
+        let (k, v) = p.get_kv(7).unwrap();
+        assert_eq!(k, k4);
+        assert_eq!(v, k4);
+        assert_eq!(p.get_free_slot_count(), 1);
+
+        assert!(p.get_kv(3).is_none());
+    }
 
     #[test]
     fn test_page() {

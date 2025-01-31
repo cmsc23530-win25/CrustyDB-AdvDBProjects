@@ -45,7 +45,7 @@ Depending on the index your choose, a few implementation details must be followe
 - There is a variable `page_pointer: PagePointer` in FixedPage that you should use to store the "last pointer" of a page (e.g. greater than the last search key or sibling of a leaf).
 - A boolean `is_leaf: bool` in FixedPage should be used to determine if the page is a leaf or inner node. 
 - For leaf nodes, you will need to store the search key and the ValueId. For inner nodes, you will need to store the search key and the page number of the child node.
-- For leaf nodes, you will need to store the search key and value (encoded value id). You will use the `page_pointer` to store the sibling of the right leaf node. You will use overflow pages to store additional entries if the leaf node is full as we do not want to change the key size. 
+- For leaf nodes, you will need to store the search key and value (encoded value id). You will use the `page_pointer` to store the sibling of the right leaf node. You will use overflow pages to only store duplicate key entries as we do not want to change the key size. For using an overflow, you will want to separate the next sibling pointer from overflow pointer, so you know when to stop looking (e.g., in some cases you should never navigate to the sibling ). 
 - For deletion you do not need to pivot data or merge nodes. It is fine to violate the B+ tree properties for this implementation.
 - You do not need a "smart" or optimized bulk load for this milestone, you can just iteratively call the insert method for each key/value pair. For the next milestone this will change.
 
@@ -80,14 +80,21 @@ Implement the `IndexFileTrait`for `FixedIndexFile` and write tests for the index
 
 ## Notes
 
-There will be a lot of unused variables to start. You can suppress these warnings by prefixing your cargo command with the following:
+1) There will be a lot of unused variables to start. You can suppress these warnings by prefixing your cargo command with the following:
 `RUSTFLAGS="-A unused"`
 
 For example, if you were running `cargo clippy` you would run:
 `RUSTFLAGS="-A unused" cargo clippy`
 
-You can also limit clippy to this workspace only by running:
+2) You can also limit clippy to this workspace only by running:
 `cargo clippy --lib -p idx_fixed_store -- --no-deps`
+
+3) You can convert a Vec to a fixed size slice via try_into and defining the size. For example:
+
+```rust
+let (k, v) = self.get_kv(i).unwrap();
+let kb: &[u8; SEARCH_KEY_SIZE] = k[..SEARCH_KEY_SIZE].try_into().unwrap();
+```
 
 ## Scoring and Requirements
 70% of your grade will be based on the provided tests. 10% will come from the quality and coverage of the tests you write and prove. The other 20% will be based on the quality of your code and your write up.

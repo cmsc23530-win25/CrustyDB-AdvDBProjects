@@ -22,8 +22,8 @@ pub mod prelude {
 
     pub const INDEX_ENTRY_SIZE: usize = SEARCH_KEY_SIZE+INDEX_POINTER_SIZE;
 
-    pub const DATA_VALUE_COUNT: usize = (PAGE_SIZE / (KEY_SIZE+VALUE_SIZE)) - 1;
-    pub const INDEX_VALUE_COUNT: usize = (PAGE_SIZE / INDEX_ENTRY_SIZE) - 1;
+    pub const DATA_VALUE_COUNT: usize = PAGE_SIZE / (KEY_SIZE+VALUE_SIZE);
+    pub const INDEX_VALUE_COUNT: usize = PAGE_SIZE / INDEX_ENTRY_SIZE;
 
     /// Making fixed size pages easy with limiting slots
     pub const PAGE_SLOT_LIMIT: usize = 1024;
