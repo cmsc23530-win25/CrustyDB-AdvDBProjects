@@ -75,7 +75,7 @@ impl<T: BufferPoolTrait> FixedHeapFile<T> {
                 None => {
                     // There was no space
                     // How do we ensure no one else bumps and adds the new page?
-                    panic!("TODO milestone idx1");
+                    //TODO milestone idx2 - Check LM first
                     if page_to_try == self.max_page.load(Relaxed) {
                         // need to make a new page
                         let new_page_id = page_to_try + 1;
