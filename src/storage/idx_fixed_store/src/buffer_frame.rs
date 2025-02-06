@@ -46,7 +46,7 @@ impl DerefMut for FrameGuard<'_> {
     }
 }
 
-impl<'a> Drop for FrameGuard<'a> {
+impl Drop for FrameGuard<'_> {
     fn drop(&mut self) {
         self.buffer_frame.pin_count.fetch_sub(1, Relaxed);
     }

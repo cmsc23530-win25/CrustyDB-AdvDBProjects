@@ -139,7 +139,7 @@ impl BufferPoolTrait for BufferPool {
         Ok((new_pid, guard))
     }
 
-    fn get_page(&self, v_id: &ValueId, perm: Permissions) -> Result<FrameGuard, CrustyError> {
+    fn get_page(&self, v_id: &ValueId, _perm: Permissions) -> Result<FrameGuard, CrustyError> {
         let cp_bytes = v_id.to_cp_bytes();
         self.acquire_latch()?;
         //Find the frame

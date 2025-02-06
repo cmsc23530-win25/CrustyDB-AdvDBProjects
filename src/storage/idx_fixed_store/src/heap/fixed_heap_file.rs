@@ -7,6 +7,7 @@ use common::prelude::*;
 use std::sync::atomic::Ordering::Relaxed;
 use txn_manager::lockmanager::LockManager;
 
+#[allow(dead_code)]
 pub struct FixedHeapFile<T: BufferPoolTrait> {
     /// A reference to the buffer pool
     bp: Arc<T>,
@@ -20,6 +21,7 @@ pub struct FixedHeapFile<T: BufferPoolTrait> {
     free_page_cache: AtomicPageId,
 }
 
+#[allow(dead_code)]
 impl<T: BufferPoolTrait> FixedHeapFile<T> {
     pub fn new(c_id: ContainerId, bp: Arc<T>, lm: Arc<LockManager>) -> Self {
         //Create first page. Assume that container has been registered
@@ -54,7 +56,7 @@ impl<T: BufferPoolTrait> FixedHeapFile<T> {
         &self,
         key: &[u8],
         val: &[u8],
-        txn: &TransactionId,
+        _txn: &TransactionId,
     ) -> Result<ValueId, CrustyError> {
         loop {
             //TODO milestone idx2 - Check LM first
@@ -107,7 +109,7 @@ impl<T: BufferPoolTrait> FixedHeapFile<T> {
     pub fn get_kv(
         &self,
         v_id: &ValueId,
-        txn: &TransactionId,
+        _txn: &TransactionId,
     ) -> Result<(Vec<u8>, Vec<u8>), CrustyError> {
         //TODO milestone idx2 Check LM first
         match self.bp.get_page(v_id, Permissions::ReadOnly) {
@@ -127,7 +129,7 @@ impl<T: BufferPoolTrait> FixedHeapFile<T> {
         v_id: &ValueId,
         key: &[u8],
         val: &[u8],
-        txn: &TransactionId,
+        _txn: &TransactionId,
     ) -> Result<(), CrustyError> {
         //TODO milestone idx2  Check LM first
         let mut page = self
@@ -140,7 +142,7 @@ impl<T: BufferPoolTrait> FixedHeapFile<T> {
         }
     }
 
-    pub fn delete_kv(&self, v_id: &ValueId, txn: &TransactionId) -> Result<(), CrustyError> {
+    pub fn delete_kv(&self, v_id: &ValueId, _txn: &TransactionId) -> Result<(), CrustyError> {
         //TODO milestone idx2  Check LM first
         let mut page = self
             .bp

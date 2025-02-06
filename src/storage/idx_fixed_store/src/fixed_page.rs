@@ -189,7 +189,7 @@ impl FixedPage {
                 return Ok(true);
             }
         }
-        return Ok(false)
+        Ok(false)
     }
 
     /// How many slots are filled

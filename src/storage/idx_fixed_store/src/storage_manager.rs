@@ -13,6 +13,7 @@ use crate::{
     prelude::{extract_search_key, SEARCH_KEY_SIZE},
 };
 
+
 type ResultKVs = Result<Vec<(Vec<u8>, Vec<u8>)>, CrustyError>;
 
 struct Catalog<T: BufferPoolTrait> {
@@ -21,6 +22,7 @@ struct Catalog<T: BufferPoolTrait> {
     table_to_index: HashMap<ContainerId, ContainerId>,
 }
 
+#[allow(dead_code)]
 struct StorageManager {
     lm: Arc<LockManager>,
     bp: Arc<BufferPool>,
@@ -28,6 +30,7 @@ struct StorageManager {
     //TODO milestone idx1 Add any fields you need here
 }
 
+#[allow(dead_code)]
 impl StorageManager {
     pub fn new(timeout_ms: u64) -> Self {
         let lm = Arc::new(LockManager::new(timeout_ms));
@@ -209,8 +212,6 @@ impl StorageManager {
 
 #[cfg(test)]
 mod tests {
-    use std::hash::Hash;
-
     use rand::{rngs::SmallRng, SeedableRng};
 
     use crate::test_util::{gen_records_ascending_keys, SearchKeyTypes};
@@ -219,11 +220,10 @@ mod tests {
     #[test]
     fn test_storage_manager_single_thread() {
         use super::*;
-        use crate::prelude::{KEY_SIZE, VALUE_SIZE};
 
         let sm = StorageManager::new(1000);
         let txn = TransactionId::new();
-        let (t_id, i_id) = sm.create_table_with_idx(Some("test_table".to_string())).unwrap();
+        let (t_id, _i_id) = sm.create_table_with_idx(Some("test_table".to_string())).unwrap();
 
         let n = 1000;
         let mut rng = SmallRng::seed_from_u64(23530);
