@@ -8,5 +8,5 @@ pub const STARTING_PAGE_CAPACITY: PageId = 8;
 
 pub mod fixed_index_file;
 pub mod fixed_index_page;
-pub mod fixed_index_trait;
 pub mod fixed_index_tests;
+pub mod fixed_index_trait;

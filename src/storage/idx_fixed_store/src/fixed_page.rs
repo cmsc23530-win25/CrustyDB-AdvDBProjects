@@ -60,11 +60,8 @@ impl FixedPage {
         self.key_size = key_size;
         self.value_size = value_size;
         self.pair_size = key_size + value_size;
-        self.slot_capacity = min(PAGE_SLOT_LIMIT, (PAGE_SIZE) / (self.pair_size) ) as SlotId;
-        assert!(
-            self.slot_capacity > 6,
-            "Page must hold at least 6 elements"
-        );
+        self.slot_capacity = min(PAGE_SLOT_LIMIT, (PAGE_SIZE) / (self.pair_size)) as SlotId;
+        assert!(self.slot_capacity > 6, "Page must hold at least 6 elements");
         // Set it so invalid slots of false
         for i in 0..self.slot_capacity {
             self.free[i as usize] = true;
@@ -164,7 +161,7 @@ impl FixedPage {
 
     /// Shift all records to the right starting from the given slot if possible.
     /// This shifts the records one place to the right up until the first empty slot encountered
-    /// If there are empty slots to the right 
+    /// If there are empty slots to the right
     /// Returns true if the shift was successful, false otherwise.
     /// If the slot is empty or out of bounds, an error is returned.
     pub fn shift_all_right(&mut self, slot: SlotId) -> Result<bool, CrustyError> {
@@ -183,7 +180,7 @@ impl FixedPage {
                 let data_shift_end = i * self.pair_size;
                 buf.extend_from_slice(&self.data[data_shift_start..data_shift_end]);
                 let os = self.pair_size;
-                self.data[data_shift_start+os.. data_shift_end+os].copy_from_slice(&buf);
+                self.data[data_shift_start + os..data_shift_end + os].copy_from_slice(&buf);
                 self.free[slot] = true;
                 self.free[i] = false;
                 return Ok(true);
@@ -214,7 +211,7 @@ mod test {
     use super::*;
     use crate::prelude::{KEY_SIZE, VALUE_SIZE};
 
-    #[test] 
+    #[test]
     fn test_shift() {
         const BIG_SIZE: usize = 256;
         // should hold 8 KV pairs
@@ -238,7 +235,7 @@ mod test {
         let (k, v) = p.get_kv(1).unwrap();
         assert_eq!(k, k2);
         assert_eq!(v, k2);
-        
+
         let (k, v) = p.get_kv(2).unwrap();
         assert_eq!(k, k3);
         assert_eq!(v, k3);
@@ -263,7 +260,7 @@ mod test {
         let (k, v) = p.get_kv(2).unwrap();
         assert_eq!(k, k2);
         assert_eq!(v, k2);
-        
+
         let (k, v) = p.get_kv(3).unwrap();
         assert_eq!(k, k3);
         assert_eq!(v, k3);
@@ -271,7 +268,7 @@ mod test {
         assert!(p.get_kv(4).is_none());
 
         // move 3 to 4, making 3 empty
-        assert!(p.move_if_empty(3,4).is_ok());
+        assert!(p.move_if_empty(3, 4).is_ok());
         assert!(p.get_kv(3).is_none());
 
         let (k, v) = p.get_kv(4).unwrap();

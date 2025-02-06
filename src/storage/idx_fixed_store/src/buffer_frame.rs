@@ -1,8 +1,8 @@
-use std::ops::DerefMut;
-use std::{cell::UnsafeCell, ops::Deref, sync::atomic::AtomicU8};
-use std::fmt::Debug;
 use crate::fixed_page::FixedPage;
+use std::fmt::Debug;
+use std::ops::DerefMut;
 use std::sync::atomic::Ordering::Relaxed;
+use std::{cell::UnsafeCell, ops::Deref, sync::atomic::AtomicU8};
 
 pub struct BufferFrame {
     pub page: UnsafeCell<FixedPage>,
@@ -19,14 +19,12 @@ impl BufferFrame {
         BufferFrame {
             page: UnsafeCell::new(FixedPage::empty()),
             frame_id,
-            pin_count: AtomicU8::new(0)
+            pin_count: AtomicU8::new(0),
         }
     }
     pub fn read(&self) -> FrameGuard {
         self.pin_count.fetch_add(1, Relaxed);
-        FrameGuard {
-            buffer_frame: self
-        }
+        FrameGuard { buffer_frame: self }
     }
 }
 

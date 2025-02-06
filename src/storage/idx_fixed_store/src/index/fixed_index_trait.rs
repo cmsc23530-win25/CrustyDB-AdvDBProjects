@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::buffer_pool::BufferPoolTrait;
-use common::prelude::*;
 use crate::prelude::*;
+use common::prelude::*;
 use txn_manager::lockmanager::LockManager;
 
 pub trait IndexFileTrait<T: BufferPoolTrait> {
@@ -140,7 +140,7 @@ pub trait IndexFileTrait<T: BufferPoolTrait> {
         txn: &TransactionId,
     ) -> Result<Vec<ValueId>, CrustyError>;
 
-    /// Get the number of pages used by the index. These pages may be empty, but the index should 
+    /// Get the number of pages used by the index. These pages may be empty, but the index should
     /// have allocated them and considers them available for use. Used for testing purposes.
     fn get_pages_used(&self) -> usize;
 }

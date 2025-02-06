@@ -30,14 +30,14 @@ impl HeapDataPage for FixedPage {
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use crate::fixed_page::FixedPage;
     use crate::test_util;
     use common::testutil::init;
-    use super::*;
-    
+
     #[test]
     fn sample_util_page_test() {
-        // Call init to set up logger. Default is info. 
+        // Call init to set up logger. Default is info.
         // Change init() to debug to see debug logs, etc
         init();
         // Construct a page with page_id 1
@@ -49,7 +49,7 @@ mod test {
         // The values are random except for the last SEARCH_KEY_SIZE bytes
         // which are the search key and are controlled by the SearchKeyTypes enum/
         // The last argument is the RNG to generate random numbers. Use from_entropy
-        // to seed the RNG with entropy or from_seed to seed with a fixed seed and 
+        // to seed the RNG with entropy or from_seed to seed with a fixed seed and
         // reproduce the same results every time.
         let record_count = DATA_VALUE_COUNT; // expected data value count
         let search_keys = test_util::SearchKeyTypes::Card(5); // The search key is one of 5 values
@@ -107,5 +107,4 @@ mod test {
             assert_eq!(page.get_kv(i as SlotId).unwrap().1, *value.1);
         }
     }
-
 }

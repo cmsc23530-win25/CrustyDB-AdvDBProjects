@@ -1,6 +1,6 @@
-use rand::{seq::SliceRandom, Rng, SeedableRng};
-use rand::rngs::SmallRng;
 use crate::prelude::*;
+use rand::rngs::SmallRng;
+use rand::{seq::SliceRandom, Rng, SeedableRng};
 
 #[derive(PartialEq)]
 pub enum SearchKeyTypes {

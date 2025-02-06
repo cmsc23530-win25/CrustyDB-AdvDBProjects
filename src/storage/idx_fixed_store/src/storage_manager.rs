@@ -13,7 +13,6 @@ use crate::{
     prelude::{extract_search_key, SEARCH_KEY_SIZE},
 };
 
-
 type ResultKVs = Result<Vec<(Vec<u8>, Vec<u8>)>, CrustyError>;
 
 struct Catalog<T: BufferPoolTrait> {
@@ -216,25 +215,30 @@ mod tests {
 
     use crate::test_util::{gen_records_ascending_keys, SearchKeyTypes};
 
-
     #[test]
     fn test_storage_manager_single_thread() {
         use super::*;
 
         let sm = StorageManager::new(1000);
         let txn = TransactionId::new();
-        let (t_id, _i_id) = sm.create_table_with_idx(Some("test_table".to_string())).unwrap();
+        let (t_id, _i_id) = sm
+            .create_table_with_idx(Some("test_table".to_string()))
+            .unwrap();
 
         let n = 1000;
         let mut rng = SmallRng::seed_from_u64(23530);
 
         let recs = gen_records_ascending_keys(n, SearchKeyTypes::Card(100), &mut rng);
-        let mut search_keys_to_vids: HashMap<[u8; SEARCH_KEY_SIZE], Vec<ValueId>> = HashMap::with_capacity(100);
-        let mut search_key_to_keys:  HashMap<[u8; SEARCH_KEY_SIZE], Vec<Vec<u8>>> = HashMap::with_capacity(100);
+        let mut search_keys_to_vids: HashMap<[u8; SEARCH_KEY_SIZE], Vec<ValueId>> =
+            HashMap::with_capacity(100);
+        let mut search_key_to_keys: HashMap<[u8; SEARCH_KEY_SIZE], Vec<Vec<u8>>> =
+            HashMap::with_capacity(100);
         let mut v_ids_to_kv = HashMap::new();
         for (key, value) in &recs {
             let v_id = sm.insert_kv(&t_id, &key, &value, &txn).unwrap();
-            assert!(v_ids_to_kv.insert(v_id, (key.to_vec(), value.to_vec())).is_none());
+            assert!(v_ids_to_kv
+                .insert(v_id, (key.to_vec(), value.to_vec()))
+                .is_none());
             let search_key = extract_search_key(value);
             search_keys_to_vids
                 .entry(*search_key)
@@ -246,7 +250,9 @@ mod tests {
                 .push(key.to_vec());
         }
         for (search_key, keys) in search_key_to_keys {
-            let kvs = sm.get_kvs_by_search_key_equality(&t_id, &search_key, &txn).unwrap();
+            let kvs = sm
+                .get_kvs_by_search_key_equality(&t_id, &search_key, &txn)
+                .unwrap();
             assert_eq!(kvs.len(), keys.len());
             for (k, _v) in kvs {
                 assert!(keys.contains(&k));
@@ -254,6 +260,5 @@ mod tests {
         }
         // TODO re-add after adding locks to lock manager
         //assert!(sm.lm.release_all_locks(txn).is_ok());
-
     }
 }
