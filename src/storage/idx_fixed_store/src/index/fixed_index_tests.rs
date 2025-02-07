@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::buffer_pool::{BufferPool, BufferPoolTrait};
-use common::ids::{ContainerId, StateType, TransactionId};
+use crate::prelude::{INDEX_POINTER_SIZE, SEARCH_KEY_SIZE};
+use common::ids::{ContainerId, SlotId, StateType, TransactionId, ValueId};
 use common::testutil::init;
 use txn_manager::lm_trait::LockManagerTrait;
 use txn_manager::lockmanager::LockManager;
@@ -28,6 +29,27 @@ pub fn set_up_test_util() -> (
     (bp, lm, txn, is_range, c_id)
 }
 
+pub fn gen_unique_search_keys_and_value_ids(
+    num: usize,
+    slots_per_page: SlotId,
+    c_id_for_v_id: ContainerId,
+) -> Vec<([u8; SEARCH_KEY_SIZE], ValueId, [u8; INDEX_POINTER_SIZE])> {
+    let mut res = Vec::new();
+    let mut p_id = 0;
+    let mut slot = 0;
+    for i in 0..num {
+        let key = [i as u8; SEARCH_KEY_SIZE];
+        let v_id = ValueId::new_slot(c_id_for_v_id, p_id, slot);
+        slot += 1;
+        if slot == slots_per_page {
+            slot = 0;
+            p_id += 1;
+        }
+        res.push((key, v_id, v_id.to_fixed_bytes()));
+    }
+    res
+}
+
 // For tests provided by instructor. Add your own tests to fixed_index_file/page.rs
 #[cfg(test)]
 mod test {
@@ -38,6 +60,9 @@ mod test {
     use crate::index::STARTING_PAGE_CAPACITY;
     use crate::prelude::SEARCH_KEY_SIZE;
     use common::ids::ValueId;
+    use rand::{rngs::SmallRng, seq::SliceRandom, SeedableRng};
+
+    use super::gen_unique_search_keys_and_value_ids;
 
     #[test]
     fn test_single_key_no_dupes() {
@@ -116,5 +141,40 @@ mod test {
         assert_eq!(2, pointers.len());
         assert!(pointers.contains(&v_id1));
         assert!(pointers.contains(&v_id2));
+    }
+
+    #[test]
+    fn test_gen() {
+        let (bp, lm, txn, is_range, idx_c_id) = set_up_test_util();
+        // Create Index
+        let idx = FixedIndexFile::new(
+            idx_c_id,
+            bp.clone(),
+            lm.clone(),
+            is_range,
+            STARTING_PAGE_CAPACITY,
+        );
+        // Create keys and value ids and bytes of value ids
+        let mut recs = gen_unique_search_keys_and_value_ids(200, 32, 99);
+
+        // Let's shuffle the records
+        let mut rng = SmallRng::seed_from_u64(23530);
+        recs.shuffle(&mut rng);
+
+        // Add records to index
+        for (key, _v_id, pointer) in recs.iter() {
+            assert!(idx.add(key, pointer, &txn).is_ok());
+        }
+
+        // Let's shuffle the list and check
+        recs.shuffle(&mut rng);
+
+        for (key, v_id, _pointer) in recs.iter() {
+            let pointers = idx
+                .get_pointers_for_key(key, &txn)
+                .expect("Should have pointers");
+            assert_eq!(pointers.len(), 1);
+            assert!(pointers.contains(v_id));
+        }
     }
 }

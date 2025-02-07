@@ -136,7 +136,7 @@ impl ValueId {
         vb[1..3].copy_from_slice(&self.container_id.to_le_bytes());
         let mut offset = 3;
         if self.segment_id.is_some() {
-            bit_flag |= 0b00000100;
+            //bit_flag |= 0b00000100;
             panic!("TODO no segment supported");
         }
         if self.page_id.is_some() {
