@@ -186,7 +186,40 @@ impl FixedPage {
                 return Ok(true);
             }
         }
-        Ok(false)
+        return Ok(false);
+    }
+
+    /// Shift all contiguous records to the left starting from the given slot if possible.    
+    /// This shifts the records one place to the left. This will shift records to left by one, starting from
+    /// the given slot to the first empty slot/end.
+    /// The slot must be empty to shift left.
+    pub fn shift_all_left(&mut self, slot: SlotId) -> Result<usize, CrustyError> {
+        let slot = slot as usize;
+        if !self.free[slot] {
+            return Err(CrustyError::CrustyError("Slot is not empty".to_string()));
+        }
+        let mut end = self.slot_capacity as usize;
+        let mut moved = 0;
+        for i in (slot + 1)..self.slot_capacity as usize {
+            if self.free[i] {
+                end = i;
+                break;
+            }
+            moved += 1;
+        }
+        if moved == 0 {
+            return Ok(0);
+        }
+        let mut buf = vec![];
+        let data_shift_start = (slot + 1) * self.pair_size;
+        let data_shift_end = end * self.pair_size;
+        buf.extend_from_slice(&self.data[data_shift_start..data_shift_end]);
+        let os = self.pair_size;
+
+        self.data[data_shift_start - os..data_shift_end - os].copy_from_slice(&buf);
+        self.free[slot] = false;
+        self.free[end - 1] = true;
+        Ok(moved)
     }
 
     /// How many slots are filled
@@ -212,7 +245,81 @@ mod test {
     use crate::prelude::{KEY_SIZE, VALUE_SIZE};
 
     #[test]
-    fn test_shift() {
+    fn test_shift_left() {
+        const BIG_SIZE: usize = 256;
+        // should hold 8 KV pairs
+        let mut p = FixedPage::new(1, BIG_SIZE, BIG_SIZE);
+        assert_eq!(p.slot_capacity, 8);
+        assert_eq!(p.get_filled_slot_count(), 0);
+        assert_eq!(p.get_free_slot_count(), 8);
+        let k = [
+            [1; BIG_SIZE],
+            [2; BIG_SIZE],
+            [3; BIG_SIZE],
+            [4; BIG_SIZE],
+            [5; BIG_SIZE],
+            [6; BIG_SIZE],
+            [7; BIG_SIZE],
+            [8; BIG_SIZE],
+            [9; BIG_SIZE],
+        ];
+
+        p.write(0, false, &k[0], &k[0]).unwrap();
+        p.write(1, false, &k[1], &k[1]).unwrap();
+        p.write(2, false, &k[2], &k[2]).unwrap();
+        assert_eq!(p.get_filled_slot_count(), 3);
+        assert_eq!(p.get_free_slot_count(), 5);
+
+        assert!(p.shift_all_left(0).is_err());
+        assert!(p.shift_all_left(1).is_err());
+        assert!(p.shift_all_left(2).is_err());
+        assert_eq!(p.shift_all_left(3).unwrap(), 0);
+
+        p.delete(0);
+        assert_eq!(p.shift_all_left(0).unwrap(), 2);
+        assert_eq!(p.get_kv(1).unwrap().0, k[2].to_vec());
+        assert_eq!(p.get_kv(0).unwrap().0, k[1].to_vec());
+        assert!(p.get_kv(2).is_none());
+
+        // Reset the page
+        p.delete_all();
+        for i in 0..p.slot_capacity {
+            assert!(p.write(i, false, &k[i as usize], &k[i as usize]).is_ok());
+        }
+        assert!(p.write(p.slot_capacity, false, &k[8], &k[8]).is_err());
+        assert_eq!(p.get_filled_slot_count(), 8);
+        assert_eq!(p.get_free_slot_count(), 0);
+
+        // remove last slot
+        let last = p.slot_capacity - 1;
+        p.delete(last);
+        assert_eq!(p.shift_all_left(last).unwrap(), 0);
+        assert_eq!(p.get_filled_slot_count(), 7);
+        assert!(p.get_kv(last).is_none());
+        p.write(last, false, &k[last as usize], &k[last as usize])
+            .unwrap();
+        // remove first slot
+        p.delete(0);
+        assert_eq!(p.shift_all_left(0).unwrap(), 7);
+        let mut k = k.to_vec();
+        k.remove(0);
+
+        for i in 0..7 {
+            assert_eq!(p.get_kv(i).unwrap().0, k[i as usize].to_vec());
+        }
+
+        // remove middle slot
+        assert_eq!(p.get_filled_slot_count(), 7);
+        p.delete(3);
+        assert_eq!(p.shift_all_left(3).unwrap(), 3);
+        k.remove(3);
+        for i in 0..6 {
+            assert_eq!(p.get_kv(i).unwrap().0, k[i as usize].to_vec());
+        }
+    }
+
+    #[test]
+    fn test_shift_right() {
         const BIG_SIZE: usize = 256;
         // should hold 8 KV pairs
         let mut p = FixedPage::new(1, BIG_SIZE, BIG_SIZE);
