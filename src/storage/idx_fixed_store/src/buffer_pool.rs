@@ -7,6 +7,7 @@ use std::sync::atomic::Ordering::Relaxed;
 use txn_manager::lockmanager::LockManager;
 
 use crate::buffer_frame::{BufferFrame, FrameGuard};
+use crate::fixed_page::FixedPage;
 use crate::prelude::*;
 use common::prelude::*;
 
@@ -29,6 +30,8 @@ pub trait BufferPoolTrait: Sync + Send {
         name: Option<String>,
         state: StateType,
     ) -> Result<ContainerId, CrustyError>;
+    /// Remove this container and delete all pages associated with it.
+    fn drop_container(&self, c_id: ContainerId) -> Result<(), CrustyError>;
 }
 
 /// Stores the metadata for a container
@@ -202,6 +205,41 @@ impl BufferPoolTrait for BufferPool {
         self.release_latch();
         Ok(cid as ContainerId)
     }
+
+    fn drop_container(&self, c_id: ContainerId) -> Result<(), CrustyError> {
+        self.acquire_latch()?;
+        let cm = unsafe { &mut *self.containers.get() };
+        if cm[c_id as usize].is_none() {
+            error!("Trying to drop non-registered Container Id {}", c_id);
+            self.release_latch();
+            return Err(CrustyError::StorageError);
+        }
+        let meta = cm[c_id as usize].as_ref().unwrap();
+        let frames = unsafe { &mut *self.frames.get() };
+        for p in 0..=meta.max_page {
+            let v_id = ValueId::new_page(c_id, p);
+            let cp_bytes = v_id.to_cp_bytes();
+            let frame_map = unsafe { &mut *self.frame_map.get() };
+            let frame_offset = frame_map.get(&cp_bytes);
+            if frame_offset.is_none() {
+                continue;
+            }
+            let frame_offset = *frame_offset.unwrap();
+            let frame = &mut frames[frame_offset];
+            let pin_count = frame.pin_count.load(Relaxed);
+            if pin_count > 0 {
+                error!("Trying to drop container with pinned pages");
+                self.release_latch();
+                return Err(CrustyError::StorageError);
+            }
+            frame.pin_count.store(0, Relaxed);
+            frame.page = UnsafeCell::new(FixedPage::empty());
+            frame_map.remove(&cp_bytes);
+        }
+        cm[c_id as usize] = None;
+        self.release_latch();
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -244,5 +282,40 @@ mod test {
         assert_eq!(k, key);
         assert_eq!(v, val);
         assert_eq!(g.buffer_frame.pin_count.load(Relaxed), 1);
+    }
+
+    #[test]
+    fn test_bp_drop() {
+        init();
+        let lm = Arc::new(LockManager::new(500));
+        let bp = BufferPool::new(lm);
+        let c1 = bp
+            .register_container(None, StateType::BaseTable)
+            .expect("Got CID");
+        assert_eq!(c1, 0);
+        let c2 = bp
+            .register_container(None, StateType::HashTable)
+            .expect("Got CID");
+        assert_eq!(c2, 1);
+        let (p, g) = bp.new_page(c1).expect("Got page");
+        assert_eq!(p, 0);
+        assert_eq!(g.buffer_frame.frame_id, 0);
+        drop(g);
+        let (p, g) = bp.new_page(c2).expect("Got page");
+        assert_eq!(p, 0);
+        assert_eq!(g.buffer_frame.frame_id, 1);
+        let (p, mut g) = bp.new_page(c1).expect("Got page");
+        assert_eq!(p, 1);
+        assert!(g.get_kv(0).is_none());
+        let key = [1; KEY_SIZE];
+        let val = [2; VALUE_SIZE];
+        let slot = g.write(0, false, &key, &val);
+        assert!(slot.is_ok());
+        // Thi should fail
+        assert!(bp.drop_container(c1).is_err());
+        drop(g);
+        assert!(bp.drop_container(c1).is_ok());
+        let v_id = ValueId::new_page(c1, 0);
+        assert!(bp.get_page(&v_id, Permissions::ReadOnly).is_err());
     }
 }
