@@ -50,6 +50,7 @@ pub trait IndexFileTrait<T: BufferPoolTrait> {
     /// * `search_keys` - The vector of search key for the index entries
     /// * `pointers` - The vector of pointers to the data value id encoded as a 10 byte array
     /// * `txn` - The transaction id for the operation
+    /// * `threads_to_use` - The number of threads to use for the bulk load. 1/0 means this thread.
     ///
     /// # Returns
     ///
@@ -60,6 +61,7 @@ pub trait IndexFileTrait<T: BufferPoolTrait> {
         search_keys: Vec<&[u8; SEARCH_KEY_SIZE]>,
         pointers: Vec<[u8; INDEX_POINTER_SIZE]>,
         txn: &TransactionId,
+        threads_to_use: usize,
     ) -> Result<Vec<ValueId>, CrustyError>;
 
     /// Update the key of an existing entry in the index
