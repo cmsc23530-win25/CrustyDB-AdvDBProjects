@@ -3,4 +3,5 @@ members = [
     "src/common",
     "src/txn_manager",
     "src/storage/idx_fixed_store",
+    "src/dictionary"
 ]
