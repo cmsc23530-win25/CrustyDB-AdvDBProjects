@@ -18,11 +18,14 @@ Note you should **not** modify Cargo.toml, lib.rs, dictionary_trait.rs, tests.rs
 Read through the trait `OPDictionaryTrait` to understand the trait function requirements.
 
 #### Step 2 - Implement ArrayOP. 
-You should be able to pass `test_all_files_array_op` with this implementation. This (and subsequent tests) iterates through a series of files and checks that the encoding and decoding of the strings is correct. This checks for individual key lookups and range lookups. You could (temporarily modify) this test to only use the first file and only check keys by changing the test to be the following. ALL CAP comments highlight the changes.
+You should be able to pass all `array_op_` tests with this implementation. 
+This (and subsequent tests) iterates through a series of files and checks that the encoding and decoding of the strings 
+is correct. These checks for individual key lookups and range lookups (both with existing and non-existing keys). You 
+could (temporarily modify) this test to only use the first file. ALL CAP comments highlight the changes.
 
 ```rust
 #[test]
-fn test_all_files_array_op() {
+fn array_op_lookups() {
     init();
     let mut rng = SmallRng::seed_from_u64(23530);
     // CHANGING TO ONLY USE FIRST FILE
@@ -31,20 +34,18 @@ fn test_all_files_array_op() {
         let d = dictionary_factory(DictEncoding::Array, &data).unwrap();
         assert!(d.get_size_of_dictionary_encoded_array() == data.len() * MAX_STRING_LENGTH);
         test_keys_random_order(&d, &data, &mut rng);
-        // COMMENTING OUT RANGE TEST
-        //test_keys_range(d, data, &mut rng);
     }
 }
 ```
 
 #### Step 3 - Implement DenseOP. 
-You should be able to pass `test_all_files_dense_op` with this implementation.
+You should be able to pass `dense_op_` tests with this implementation.
 
 #### Step 4 - Implement Front, and RePair. 
-You should be able to pass `test_all_files_front_op`, and `test_all_files_repair_op` with these implementations. You will likely need to add some new unit tests for your code here.
+You should be able to pass `front_op_`, and `repair_op_` with these implementations. You will likely need to add some new unit tests for your code here.
 
 #### Step 5 - Implement RePairFront. 
-You should be able to pass `test_all_files_repair_front_op` with this implementation.
+You should be able to pass `repair_front_op_` with this implementation.
 
 ## Notes
 

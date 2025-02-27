@@ -51,7 +51,7 @@ mod tests {
     }
 
     #[test]
-    fn test_all_files_array_op() {
+    fn array_op_lookups() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
         for file in &TEST_FILES {
@@ -59,12 +59,34 @@ mod tests {
             let d = dictionary_factory(DictEncoding::Array, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() == data.len() * MAX_STRING_LENGTH);
             test_keys_random_order(&d, &data, &mut rng);
-            test_keys_range(d, data, &mut rng);
         }
     }
 
     #[test]
-    fn test_all_files_dense_op() {
+    fn array_op_range_existing() {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        for file in &TEST_FILES {
+            let data = convert_file_wrapper(file).unwrap();
+            let d = dictionary_factory(DictEncoding::Array, &data).unwrap();
+            test_existing_keys_range(d, &data, &mut rng);
+        }
+    }
+
+    #[test]
+    fn array_op_range_non_existing() {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        for file in &TEST_FILES {
+            let data = convert_file_wrapper(file).unwrap();
+            let d = dictionary_factory(DictEncoding::Array, &data).unwrap();
+            assert!(d.get_size_of_dictionary_encoded_array() == data.len() * MAX_STRING_LENGTH);
+            test_non_existing_keys_range(d, &data, &mut rng);
+        }
+    }
+
+    #[test]
+    fn dense_op_lookups() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
         for file in &TEST_FILES {
@@ -72,12 +94,36 @@ mod tests {
             let d = dictionary_factory(DictEncoding::Dense, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() == get_data_size(&data));
             test_keys_random_order(&d, &data, &mut rng);
-            test_keys_range(d, data, &mut rng);
         }
     }
 
     #[test]
-    fn test_all_files_front_op() {
+    fn dense_op_range_existing() {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        for file in &TEST_FILES {
+            let data = convert_file_wrapper(file).unwrap();
+            let d = dictionary_factory(DictEncoding::Dense, &data).unwrap();
+            assert!(d.get_size_of_dictionary_encoded_array() == get_data_size(&data));
+            test_existing_keys_range(d, &data, &mut rng);
+        }
+    }
+    
+    #[test]
+    fn dense_op_range_non_existing() {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        for file in &TEST_FILES {
+            let data = convert_file_wrapper(file).unwrap();
+            let d = dictionary_factory(DictEncoding::Dense, &data).unwrap();
+            assert!(d.get_size_of_dictionary_encoded_array() == get_data_size(&data));
+            test_non_existing_keys_range(d, &data, &mut rng);
+        }
+    }
+
+
+    #[test]
+    fn front_op_lookups() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
         for file in &TEST_FILES {
@@ -85,12 +131,35 @@ mod tests {
             let d = dictionary_factory(DictEncoding::Front, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
             test_keys_random_order(&d, &data, &mut rng);
-            test_keys_range(d, data, &mut rng);
         }
     }
 
     #[test]
-    fn test_all_files_repair_op() {
+    fn front_op_range_existing() {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        for file in &TEST_FILES {
+            let data = convert_file_wrapper(file).unwrap();
+            let d = dictionary_factory(DictEncoding::Front, &data).unwrap();
+            assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
+            test_existing_keys_range(d, &data, &mut rng);
+        }
+    }
+
+    #[test]
+    fn front_op_range_non_existing() {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        for file in &TEST_FILES {
+            let data = convert_file_wrapper(file).unwrap();
+            let d = dictionary_factory(DictEncoding::Front, &data).unwrap();
+            assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
+            test_non_existing_keys_range(d, &data, &mut rng);
+        }
+    }
+
+    #[test]
+    fn repair_op_lookups() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
         for file in &TEST_FILES {
@@ -98,12 +167,36 @@ mod tests {
             let d = dictionary_factory(DictEncoding::RePair, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
             test_keys_random_order(&d, &data, &mut rng);
-            test_keys_range(d, data, &mut rng);
         }
     }
 
     #[test]
-    fn test_all_files_repair_front_op() {
+    fn repair_op_range_existing() {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        for file in &TEST_FILES {
+            let data = convert_file_wrapper(file).unwrap();
+            let d = dictionary_factory(DictEncoding::RePair, &data).unwrap();
+            assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
+            test_existing_keys_range(d, &data, &mut rng);
+        }
+    }
+
+    #[test]
+    fn repair_op_range_non_existing() {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        for file in &TEST_FILES {
+            let data = convert_file_wrapper(file).unwrap();
+            let d = dictionary_factory(DictEncoding::RePair, &data).unwrap();
+            assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
+            test_non_existing_keys_range(d, &data, &mut rng);
+        }
+    }
+
+
+    #[test]
+    fn repair_front_op_lookups() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
         for file in &TEST_FILES {
@@ -111,10 +204,32 @@ mod tests {
             let d = dictionary_factory(DictEncoding::RePairFront, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
             test_keys_random_order(&d, &data, &mut rng);
-            test_keys_range(d, data, &mut rng);
         }
     }
 
+    #[test]
+    fn repair_front_op_range_existing() {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        for file in &TEST_FILES {
+            let data = convert_file_wrapper(file).unwrap();
+            let d = dictionary_factory(DictEncoding::RePairFront, &data).unwrap();
+            assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
+            test_existing_keys_range(d, &data, &mut rng);
+        }
+    }
+
+    #[test]
+    fn repair_front_op_range_non_existing() {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        for file in &TEST_FILES {
+            let data = convert_file_wrapper(file).unwrap();
+            let d = dictionary_factory(DictEncoding::RePairFront, &data).unwrap();
+            assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
+            test_non_existing_keys_range(d, &data, &mut rng);
+        }
+    }
     /// Only used for NON-OP dictionary given as reference
     fn test_non_op_keys(
         dict: &Box<dyn OPDictionaryTrait>,
@@ -180,9 +295,10 @@ mod tests {
         }
     }
 
-    fn test_keys_range(
+
+    fn test_non_existing_keys_range(
         dict: Box<dyn OPDictionaryTrait>,
-        data: Vec<Vec<u8>>,
+        data: &Vec<Vec<u8>>,
         rng: &mut rand::rngs::SmallRng,
     ) {
         let mut sorted: Vec<Vec<u8>> = data.iter().map(|v| v.clone()).collect();
@@ -199,23 +315,6 @@ mod tests {
         let (start, end) = dict.get_key_range(&min, &max);
         assert_eq!(start, 0);
         assert_eq!(end, data.len());
-
-        trace!(" ---  Checking random key ranges for existing keys");
-        // Loop and check random key ranges that exist in the dictionary
-        for _ in 0..20 {
-            let start = rng.gen_range(0..data.len() - 1);
-            let end = rng.gen_range(start..data.len());
-            trace!(
-                "Start|End  ({:2}){:10}|{:10}({:2})",
-                start,
-                String::from_utf8(sorted[start].clone()).unwrap(),
-                String::from_utf8(sorted[end].clone()).unwrap(),
-                end
-            );
-            let (start_idx, end_idx) = dict.get_key_range(&sorted[start], &sorted[end]);
-            assert_eq!(start_idx, start);
-            assert_eq!(end_idx, end);
-        }
 
         // Loop and check random key ranges that do not exist in the dictionary
         // start with end that is not in the dictionary
@@ -301,6 +400,32 @@ mod tests {
                 "End index failed for start {} and end {}",
                 start, end
             );
+        }
+    }
+
+    fn test_existing_keys_range(
+        dict: Box<dyn OPDictionaryTrait>,
+        data: &Vec<Vec<u8>>,
+        rng: &mut rand::rngs::SmallRng,
+    ) {
+        let mut sorted: Vec<Vec<u8>> = data.iter().map(|v| v.clone()).collect();
+        sorted.sort();
+
+        trace!(" ---  Checking random key ranges for existing keys");
+        // Loop and check random key ranges that exist in the dictionary
+        for _ in 0..20 {
+            let start = rng.gen_range(0..data.len() - 1);
+            let end = rng.gen_range(start..data.len());
+            trace!(
+                "Start|End  ({:2}){:10}|{:10}({:2})",
+                start,
+                String::from_utf8(sorted[start].clone()).unwrap(),
+                String::from_utf8(sorted[end].clone()).unwrap(),
+                end
+            );
+            let (start_idx, end_idx) = dict.get_key_range(&sorted[start], &sorted[end]);
+            assert_eq!(start_idx, start);
+            assert_eq!(end_idx, end);
         }
     }
 }
