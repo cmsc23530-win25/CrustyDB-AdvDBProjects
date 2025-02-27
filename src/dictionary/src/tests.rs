@@ -50,7 +50,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_all_files_array_op() {
         init();
@@ -70,9 +69,10 @@ mod tests {
         let mut rng = SmallRng::seed_from_u64(23530);
         for file in &TEST_FILES {
             let data = convert_file_wrapper(file).unwrap();
-            let d = dictionary_factory(DictEncoding::Array, &data).unwrap();
+            let d = dictionary_factory(DictEncoding::Dense, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() == get_data_size(&data));
             test_keys_random_order(&d, &data, &mut rng);
+            test_keys_range(d, data, &mut rng);
         }
     }
 
@@ -85,6 +85,7 @@ mod tests {
             let d = dictionary_factory(DictEncoding::Front, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
             test_keys_random_order(&d, &data, &mut rng);
+            test_keys_range(d, data, &mut rng);
         }
     }
 
@@ -97,9 +98,10 @@ mod tests {
             let d = dictionary_factory(DictEncoding::RePair, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
             test_keys_random_order(&d, &data, &mut rng);
+            test_keys_range(d, data, &mut rng);
         }
     }
-    
+
     #[test]
     fn test_all_files_repair_front_op() {
         init();
@@ -109,6 +111,7 @@ mod tests {
             let d = dictionary_factory(DictEncoding::RePairFront, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
             test_keys_random_order(&d, &data, &mut rng);
+            test_keys_range(d, data, &mut rng);
         }
     }
 
@@ -125,8 +128,20 @@ mod tests {
         // }
         offsets.shuffle(rng);
         for i in &offsets {
-            assert_eq!(dict.decode_key(*i), data[*i].as_slice(), "Decode key failed at  index (orig / decoded) {}: {:10}|{:10}", i, String::from_utf8(data[*i].clone()).unwrap(), String::from_utf8(dict.decode_key(*i).clone()).unwrap());
-            assert_eq!(dict.get_key(data[*i].as_slice()), Some(*i), "Get key failed at index {}", i);
+            assert_eq!(
+                dict.decode_key(*i),
+                data[*i].as_slice(),
+                "Decode key failed at  index (orig / decoded) {}: {:10}|{:10}",
+                i,
+                String::from_utf8(data[*i].clone()).unwrap(),
+                String::from_utf8(dict.decode_key(*i).clone()).unwrap()
+            );
+            assert_eq!(
+                dict.get_key(data[*i].as_slice()),
+                Some(*i),
+                "Get key failed at index {}",
+                i
+            );
         }
     }
 
@@ -139,12 +154,29 @@ mod tests {
         data_sorted.sort();
         let mut offsets: Vec<usize> = (0..data.len()).collect();
         for i in &offsets {
-            trace!("Decode key failed at  index (orig / decoded) {}: {:10}|{:10}", i, String::from_utf8(data_sorted[*i].clone()).unwrap(), String::from_utf8(dict.decode_key(*i).clone()).unwrap());
+            trace!(
+                "Decode key failed at  index (orig / decoded) {}: {:10}|{:10}",
+                i,
+                String::from_utf8(data_sorted[*i].clone()).unwrap(),
+                String::from_utf8(dict.decode_key(*i).clone()).unwrap()
+            );
         }
         offsets.shuffle(rng);
         for i in &offsets {
-            assert_eq!(dict.decode_key(*i), data_sorted[*i].as_slice(), "Decode key failed at  index (orig / decoded) {}: {:10}|{:10}", i, String::from_utf8(data_sorted[*i].clone()).unwrap(), String::from_utf8(dict.decode_key(*i).clone()).unwrap());
-            assert_eq!(dict.get_key(data_sorted[*i].as_slice()), Some(*i), "Get key failed at index {}", i);
+            assert_eq!(
+                dict.decode_key(*i),
+                data_sorted[*i].as_slice(),
+                "Decode key failed at  index (orig / decoded) {}: {:10}|{:10}",
+                i,
+                String::from_utf8(data_sorted[*i].clone()).unwrap(),
+                String::from_utf8(dict.decode_key(*i).clone()).unwrap()
+            );
+            assert_eq!(
+                dict.get_key(data_sorted[*i].as_slice()),
+                Some(*i),
+                "Get key failed at index {}",
+                i
+            );
         }
     }
 
@@ -159,7 +191,11 @@ mod tests {
         // Check min and max possible values give 0 and data.len()
         let min = [0u8; MAX_STRING_LENGTH];
         let max = [127u8; MAX_STRING_LENGTH];
-        trace!("Min|Max {:10}|{:10}", String::from_utf8(min.to_vec()).unwrap(), String::from_utf8(max.to_vec()).unwrap());
+        trace!(
+            "Min|Max {:10}|{:10}",
+            String::from_utf8(min.to_vec()).unwrap(),
+            String::from_utf8(max.to_vec()).unwrap()
+        );
         let (start, end) = dict.get_key_range(&min, &max);
         assert_eq!(start, 0);
         assert_eq!(end, data.len());
@@ -167,9 +203,15 @@ mod tests {
         trace!(" ---  Checking random key ranges for existing keys");
         // Loop and check random key ranges that exist in the dictionary
         for _ in 0..20 {
-            let start = rng.gen_range(0..data.len()-1);
+            let start = rng.gen_range(0..data.len() - 1);
             let end = rng.gen_range(start..data.len());
-            trace!("Start|End  ({:2}){:10}|{:10}({:2})", start, String::from_utf8(sorted[start].clone()).unwrap(), String::from_utf8(sorted[end].clone()).unwrap(), end);
+            trace!(
+                "Start|End  ({:2}){:10}|{:10}({:2})",
+                start,
+                String::from_utf8(sorted[start].clone()).unwrap(),
+                String::from_utf8(sorted[end].clone()).unwrap(),
+                end
+            );
             let (start_idx, end_idx) = dict.get_key_range(&sorted[start], &sorted[end]);
             assert_eq!(start_idx, start);
             assert_eq!(end_idx, end);
@@ -179,11 +221,11 @@ mod tests {
         // start with end that is not in the dictionary
         trace!(" ---  Checking random key ranges for existing start and non-existing end keys");
         for _ in 0..20 {
-            let start = rng.gen_range(0..data.len()-1);
+            let start = rng.gen_range(0..data.len() - 1);
             let end = rng.gen_range(start..data.len());
             let mut end_key = sorted[end].clone();
-            let last_pos = end_key.len()-1;
-            let mut last_char  = end_key[last_pos];
+            let last_pos = end_key.len() - 1;
+            let mut last_char = end_key[last_pos];
             if (last_char as u8) < 127 {
                 last_char += 1;
                 end_key[last_pos] = last_char;
@@ -193,26 +235,40 @@ mod tests {
             if data.contains(&end_key) {
                 continue;
             }
-            if end < sorted.len()-1 && end_key > sorted[end+1] {
+            if end < sorted.len() - 1 && end_key > sorted[end + 1] {
                 // simple way of modifying string cannot guarantee its not smaller than next key.
                 continue;
             }
-            trace!("Start|End  ({:2}){:10}|{:10}(modified from {:10} at {:2})", start, String::from_utf8(sorted[start].clone()).unwrap(), String::from_utf8(end_key.clone()).unwrap(), String::from_utf8(sorted[end].clone()).unwrap(), end);
+            trace!(
+                "Start|End  ({:2}){:10}|{:10}(modified from {:10} at {:2})",
+                start,
+                String::from_utf8(sorted[start].clone()).unwrap(),
+                String::from_utf8(end_key.clone()).unwrap(),
+                String::from_utf8(sorted[end].clone()).unwrap(),
+                end
+            );
             let (start_idx, end_idx) = dict.get_key_range(&sorted[start], &end_key);
-            assert_eq!(start_idx, start, "Start index failed for start {} and end {}", start, end);
-            assert_eq!(end_idx, end, "End index failed for start {} and end {}", start, end);
+            assert_eq!(
+                start_idx, start,
+                "Start index failed for start {} and end {}",
+                start, end
+            );
+            assert_eq!(
+                end_idx, end,
+                "End index failed for start {} and end {}",
+                start, end
+            );
         }
-
 
         // Loop and check random key ranges that do not exist in the dictionary
         // start key not existing
         trace!(" ---  Checking random key ranges for non-existing start and existing end keys");
         for _ in 0..20 {
-            let start = rng.gen_range(0..data.len()-1);
+            let start = rng.gen_range(0..data.len() - 1);
             let end = rng.gen_range(start..data.len());
             let mut start_key = sorted[start].clone();
-            let last_pos = start_key.len()-1;
-            let mut last_char  = start_key[last_pos];
+            let last_pos = start_key.len() - 1;
+            let mut last_char = start_key[last_pos];
             if (last_char as u8) > 0 {
                 last_char -= 1;
                 start_key[last_pos] = last_char;
@@ -222,14 +278,29 @@ mod tests {
             if data.contains(&start_key) {
                 continue;
             }
-            if start > 0 && start_key < sorted[start-1] {
+            if start > 0 && start_key < sorted[start - 1] {
                 // simple way of modifying string cannot guarantee its not smaller than next key.
                 continue;
             }
-            trace!("Start|End  ({:2}){:10}|{:10}({:2}) - start modified from {:10}", start, String::from_utf8(start_key.clone()).unwrap(), String::from_utf8(sorted[end].clone()).unwrap(), end, String::from_utf8(sorted[start].clone()).unwrap());
+            trace!(
+                "Start|End  ({:2}){:10}|{:10}({:2}) - start modified from {:10}",
+                start,
+                String::from_utf8(start_key.clone()).unwrap(),
+                String::from_utf8(sorted[end].clone()).unwrap(),
+                end,
+                String::from_utf8(sorted[start].clone()).unwrap()
+            );
             let (start_idx, end_idx) = dict.get_key_range(&start_key, &sorted[end]);
-            assert_eq!(start_idx, start, "Start index failed for start {} and end {}", start, end);
-            assert_eq!(end_idx, end, "End index failed for start {} and end {}", start, end);
+            assert_eq!(
+                start_idx, start,
+                "Start index failed for start {} and end {}",
+                start, end
+            );
+            assert_eq!(
+                end_idx, end,
+                "End index failed for start {} and end {}",
+                start, end
+            );
         }
     }
 }

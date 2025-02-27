@@ -1,5 +1,8 @@
-use super::array_non_op::ArrayNonOPDictionary;
-use super::array_op::ArrayOPDictionary;
+use crate::array_non_op::ArrayNonOPDictionary;
+use crate::array_op::ArrayOPDictionary;
+use crate::dense_op::DenseOPDictionary;
+use crate::front_op::FrontOPDictionary;
+use crate::repair_op::RepairOPDictionary;
 use common::CrustyError;
 
 pub const MAX_STRING_LENGTH: usize = 10;
@@ -93,22 +96,22 @@ pub fn dictionary_factory(
             Ok(Box::new(dict))
         }
         DictEncoding::Dense => {
-            let mut dict = ArrayOPDictionary::new();
+            let mut dict = DenseOPDictionary::new();
             dict.encode_keys(values_ref)?;
             Ok(Box::new(dict))
         }
         DictEncoding::RePair => {
-            let mut dict = ArrayOPDictionary::new();
+            let mut dict = RepairOPDictionary::new();
             dict.encode_keys(values_ref)?;
             Ok(Box::new(dict))
         }
         DictEncoding::Front => {
-            let mut dict = ArrayOPDictionary::new();
+            let mut dict = FrontOPDictionary::new();
             dict.encode_keys(values_ref)?;
             Ok(Box::new(dict))
         }
         DictEncoding::RePairFront => {
-            let mut dict = ArrayOPDictionary::new();
+            let mut dict = RepairOPDictionary::new();
             dict.encode_keys(values_ref)?;
             Ok(Box::new(dict))
         }
