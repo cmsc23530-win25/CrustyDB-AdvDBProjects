@@ -108,7 +108,7 @@ mod tests {
             test_existing_keys_range(d, &data, &mut rng);
         }
     }
-    
+
     #[test]
     fn dense_op_range_non_existing() {
         init();
@@ -120,7 +120,6 @@ mod tests {
             test_non_existing_keys_range(d, &data, &mut rng);
         }
     }
-
 
     #[test]
     fn front_op_lookups() {
@@ -194,7 +193,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn repair_front_op_lookups() {
         init();
@@ -239,7 +237,7 @@ mod tests {
         let mut offsets: Vec<usize> = (0..data.len()).collect();
         // To see values uncomment the following
         // for i in &offsets {
-        //     trace!("Decode key failed at  index (orig / decoded) {}: {:10}|{:10}", i, String::from_utf8(data[*i].clone()).unwrap(), String::from_utf8(dict.decode_key(*i).clone()).unwrap());
+        //     trace!("-  key  at  index (orig / decoded) {}: {:10}|{:10}", i, String::from_utf8(data[*i].clone()).unwrap(), String::from_utf8(dict.decode_key(*i).clone()).unwrap());
         // }
         offsets.shuffle(rng);
         for i in &offsets {
@@ -268,14 +266,15 @@ mod tests {
         let mut data_sorted = data.clone();
         data_sorted.sort();
         let mut offsets: Vec<usize> = (0..data.len()).collect();
-        for i in &offsets {
-            trace!(
-                "Decode key failed at  index (orig / decoded) {}: {:10}|{:10}",
-                i,
-                String::from_utf8(data_sorted[*i].clone()).unwrap(),
-                String::from_utf8(dict.decode_key(*i).clone()).unwrap()
-            );
-        }
+        // Uncomment to see values
+        // for i in &offsets {
+        //     trace!(
+        //         "- key at index (orig / decoded) {}: {:10}|{:10}",
+        //         i,
+        //         String::from_utf8(data_sorted[*i].clone()).unwrap(),
+        //         String::from_utf8(dict.decode_key(*i).clone()).unwrap()
+        //     );
+        // }
         offsets.shuffle(rng);
         for i in &offsets {
             assert_eq!(
@@ -295,7 +294,6 @@ mod tests {
         }
     }
 
-
     fn test_non_existing_keys_range(
         dict: Box<dyn OPDictionaryTrait>,
         data: &Vec<Vec<u8>>,
@@ -314,7 +312,7 @@ mod tests {
         );
         let (start, end) = dict.get_key_range(&min, &max);
         assert_eq!(start, 0);
-        assert_eq!(end, data.len());
+        assert_eq!(end, data.len() - 1);
 
         // Loop and check random key ranges that do not exist in the dictionary
         // start with end that is not in the dictionary

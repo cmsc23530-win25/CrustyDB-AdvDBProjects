@@ -21,16 +21,17 @@ pub fn convert_file(file_name: &str) ->  io::Result<Vec<Vec<u8>>>  {
 
     // Iterate over each line in the file
     for line in reader.lines() {
-        let mut ascii_word: Vec<u8> = Vec::new();
-        let word = line?; // Get the word from the line
-        for char in word.chars() {
-            // Convert each character to its ASCII byte value
-            ascii_word.push(char as u8);
-        }
-        //println!("{word} {ascii_word:?}");
-        ascii_values.push(ascii_word);
+        ascii_values.push(convert_string(&line?));
     }
     Ok(ascii_values)
+}
+
+pub fn convert_string(input: &str) -> Vec<u8> {
+    let mut ascii_values: Vec<u8> = Vec::new();
+    for char in input.chars() {
+        ascii_values.push(char as u8);
+    }
+    ascii_values
 }
 
 #[allow(dead_code)]
