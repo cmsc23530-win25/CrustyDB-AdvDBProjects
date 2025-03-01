@@ -2,6 +2,7 @@ use crate::array_non_op::ArrayNonOPDictionary;
 use crate::array_op::ArrayOPDictionary;
 use crate::dense_op::DenseOPDictionary;
 use crate::front_op::FrontOPDictionary;
+use crate::repair_front_op::RepairFrontOP;
 use crate::repair_op::RepairOPDictionary;
 use common::CrustyError;
 
@@ -111,7 +112,7 @@ pub fn dictionary_factory(
             Ok(Box::new(dict))
         }
         DictEncoding::RePairFront => {
-            let mut dict = RepairOPDictionary::new();
+            let mut dict = RepairFrontOP::new();
             dict.encode_keys(values_ref)?;
             Ok(Box::new(dict))
         }
