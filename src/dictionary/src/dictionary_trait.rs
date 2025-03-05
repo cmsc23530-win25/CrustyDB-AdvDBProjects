@@ -8,6 +8,7 @@ use common::CrustyError;
 
 pub const MAX_STRING_LENGTH: usize = 10;
 
+#[derive(Debug,PartialEq,Clone)]
 pub enum DictEncoding {
     /// Here the dictionary is stored as Vec<Vec<u8>>. This is the most basic encoding. Provided as a reference
     NonOPArray,
