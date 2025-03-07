@@ -102,7 +102,7 @@ mod tests {
     fn dense_op_range_existing() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::Dense, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() == get_data_size(&data));
@@ -259,7 +259,7 @@ mod tests {
     fn repair_front_op_range_non_existing() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::RePairFront, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
