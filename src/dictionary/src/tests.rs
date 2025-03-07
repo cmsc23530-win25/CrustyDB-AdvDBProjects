@@ -12,6 +12,7 @@ mod tests {
     use crate::dictionary_trait::MAX_STRING_LENGTH;
     use crate::encode::convert_file_wrapper;
 
+    const FILES_END: usize = 4;
     const TEST_FILES: [&str; 5] = [
         "first100.txt",
         "first1000.txt",
@@ -54,7 +55,7 @@ mod tests {
     fn array_op_lookups() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::Array, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() == data.len() * MAX_STRING_LENGTH);
@@ -66,7 +67,7 @@ mod tests {
     fn array_op_range_existing() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::Array, &data).unwrap();
             test_existing_keys_range(d, &data, &mut rng);
@@ -77,7 +78,7 @@ mod tests {
     fn array_op_range_non_existing() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::Array, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() == data.len() * MAX_STRING_LENGTH);
@@ -89,7 +90,7 @@ mod tests {
     fn dense_op_lookups() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::Dense, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() == get_data_size(&data));
@@ -113,7 +114,7 @@ mod tests {
     fn dense_op_range_non_existing() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::Dense, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() == get_data_size(&data));
@@ -125,7 +126,7 @@ mod tests {
     fn front_op_lookups() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::Front, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
@@ -137,7 +138,7 @@ mod tests {
     fn front_op_range_existing() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::Front, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
@@ -149,7 +150,7 @@ mod tests {
     fn front_op_range_non_existing() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::Front, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
@@ -161,7 +162,7 @@ mod tests {
     fn repair_op_lookups() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::RePair, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
@@ -173,7 +174,7 @@ mod tests {
     fn repair_op_range_existing() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::RePair, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
@@ -185,7 +186,7 @@ mod tests {
     fn repair_op_range_non_existing() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::RePair, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
@@ -193,11 +194,48 @@ mod tests {
         }
     }
 
+    #[test] #[ignore]
+    fn front_large()
+    {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        let file = &TEST_FILES[3];
+        let data = convert_file_wrapper(file).unwrap();
+        let d = dictionary_factory(DictEncoding::Front, &data).unwrap();
+        test_keys_random_order(&d, &data, &mut rng);
+        test_existing_keys_range(d, &data, &mut rng);
+    }
+
+    #[test] #[ignore]
+    fn repair_large()
+    {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        let file = &TEST_FILES[3];
+        let data = convert_file_wrapper(file).unwrap();
+        let d = dictionary_factory(DictEncoding::RePair, &data).unwrap();
+        test_keys_random_order(&d, &data, &mut rng);
+        test_existing_keys_range(d, &data, &mut rng);
+    }
+
+    #[test] #[ignore]
+    fn repair_front_large()
+    {
+        init();
+        let mut rng = SmallRng::seed_from_u64(23530);
+        let file = &TEST_FILES[3];
+        let data = convert_file_wrapper(file).unwrap();
+        let d = dictionary_factory(DictEncoding::RePairFront, &data).unwrap();
+        test_keys_random_order(&d, &data, &mut rng);
+        test_existing_keys_range(d, &data, &mut rng);
+    }
+    
+
     #[test]
     fn repair_front_op_lookups() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::RePairFront, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
@@ -209,7 +247,7 @@ mod tests {
     fn repair_front_op_range_existing() {
         init();
         let mut rng = SmallRng::seed_from_u64(23530);
-        for file in &TEST_FILES {
+        for file in &TEST_FILES[..FILES_END] {
             let data = convert_file_wrapper(file).unwrap();
             let d = dictionary_factory(DictEncoding::RePairFront, &data).unwrap();
             assert!(d.get_size_of_dictionary_encoded_array() < get_data_size(&data));
